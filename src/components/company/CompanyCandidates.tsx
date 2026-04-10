@@ -64,8 +64,8 @@ export const CompanyCandidates = ({ userId }: CompanyCandidatesProps) => {
     if (data) setApplications(data);
   };
 
-  const updateStatus = async (appId: string, newStatus: string) => {
-    const { error } = await supabase.from("applications").update({ status: newStatus }).eq("id", appId);
+const updateStatus = async (appId: string, newStatus: string) => {
+    const { error } = await supabase.from("applications").update({ status: newStatus as any }).eq("id", appId);
     if (!error) {
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
       toast({ title: `تم تحديث الحالة إلى: ${statusLabels[newStatus]}` });
