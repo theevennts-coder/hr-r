@@ -14,16 +14,393 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      applications: {
+        Row: {
+          candidate_id: string
+          cover_letter: string | null
+          created_at: string
+          id: string
+          job_id: string
+          match_breakdown: Json | null
+          match_score: number | null
+          notes: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          cover_letter?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          match_breakdown?: Json | null
+          match_score?: number | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          cover_letter?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          match_breakdown?: Json | null
+          match_score?: number | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          actor_id: string | null
+          actor_type: string | null
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_type?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_type?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      candidates: {
+        Row: {
+          ai_summary: string | null
+          bio: string | null
+          city: string | null
+          created_at: string
+          cv_parsed_data: Json | null
+          cv_url: string | null
+          experience_years: number | null
+          id: string
+          skills: string[] | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string
+          cv_parsed_data?: Json | null
+          cv_url?: string | null
+          experience_years?: number | null
+          id?: string
+          skills?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string
+          cv_parsed_data?: Json | null
+          cv_url?: string | null
+          experience_years?: number | null
+          id?: string
+          skills?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      companies: {
+        Row: {
+          city: string | null
+          created_at: string
+          description: string | null
+          frozen_reason: string | null
+          id: string
+          industry: string | null
+          is_frozen: boolean
+          jobs_posted: number
+          logo_url: string | null
+          name: string
+          updated_at: string
+          user_id: string
+          views_without_shortlist: number
+          website: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          frozen_reason?: string | null
+          id?: string
+          industry?: string | null
+          is_frozen?: boolean
+          jobs_posted?: number
+          logo_url?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+          views_without_shortlist?: number
+          website?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          frozen_reason?: string | null
+          id?: string
+          industry?: string | null
+          is_frozen?: boolean
+          jobs_posted?: number
+          logo_url?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+          views_without_shortlist?: number
+          website?: string | null
+        }
+        Relationships: []
+      }
+      evaluations: {
+        Row: {
+          application_id: string
+          communication_score: number | null
+          created_at: string
+          evaluator_id: string
+          id: string
+          notes: string | null
+          overall_score: number | null
+          problem_solving_score: number | null
+          recommendation: string | null
+          technical_score: number | null
+          updated_at: string
+          values_alignment_score: number | null
+        }
+        Insert: {
+          application_id: string
+          communication_score?: number | null
+          created_at?: string
+          evaluator_id: string
+          id?: string
+          notes?: string | null
+          overall_score?: number | null
+          problem_solving_score?: number | null
+          recommendation?: string | null
+          technical_score?: number | null
+          updated_at?: string
+          values_alignment_score?: number | null
+        }
+        Update: {
+          application_id?: string
+          communication_score?: number | null
+          created_at?: string
+          evaluator_id?: string
+          id?: string
+          notes?: string | null
+          overall_score?: number | null
+          problem_solving_score?: number | null
+          recommendation?: string | null
+          technical_score?: number | null
+          updated_at?: string
+          values_alignment_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          applications_count: number
+          city: string | null
+          company_id: string
+          compliance_notes: string | null
+          created_at: string
+          description: string
+          grace_period_ends_at: string | null
+          id: string
+          is_compliant: boolean | null
+          min_experience: number | null
+          required_skills: string[] | null
+          status: Database["public"]["Enums"]["job_status"]
+          title: string
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          applications_count?: number
+          city?: string | null
+          company_id: string
+          compliance_notes?: string | null
+          created_at?: string
+          description: string
+          grace_period_ends_at?: string | null
+          id?: string
+          is_compliant?: boolean | null
+          min_experience?: number | null
+          required_skills?: string[] | null
+          status?: Database["public"]["Enums"]["job_status"]
+          title: string
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          applications_count?: number
+          city?: string | null
+          company_id?: string
+          compliance_notes?: string | null
+          created_at?: string
+          description?: string
+          grace_period_ends_at?: string | null
+          id?: string
+          is_compliant?: boolean | null
+          min_experience?: number | null
+          required_skills?: string[] | null
+          status?: Database["public"]["Enums"]["job_status"]
+          title?: string
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+          user_type?: Database["public"]["Enums"]["user_type"]
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+          user_type?: Database["public"]["Enums"]["user_type"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      log_audit: {
+        Args: {
+          _actor_id: string
+          _actor_type?: string
+          _event_type: string
+          _metadata?: Json
+          _target_id?: string
+          _target_type?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      application_status:
+        | "applied"
+        | "shortlisted"
+        | "interview_scheduled"
+        | "interviewed"
+        | "hired"
+        | "rejected"
+      job_status: "draft" | "grace_period" | "open" | "closed" | "frozen"
+      user_type: "candidate" | "company"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +527,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      application_status: [
+        "applied",
+        "shortlisted",
+        "interview_scheduled",
+        "interviewed",
+        "hired",
+        "rejected",
+      ],
+      job_status: ["draft", "grace_period", "open", "closed", "frozen"],
+      user_type: ["candidate", "company"],
+    },
   },
 } as const

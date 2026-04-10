@@ -1,14 +1,70 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Routes, Route, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { LogOut, User, Briefcase, FileText, Settings } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { CandidateProfile } from "@/components/candidate/CandidateProfile";
+import { CVUpload } from "@/components/candidate/CVUpload";
+import { JobsBrowse } from "@/components/candidate/JobsBrowse";
+import { MyApplications } from "@/components/candidate/MyApplications";
+import { CareerCoach } from "@/components/candidate/CareerCoach";
+import { CompanyJobs } from "@/components/company/CompanyJobs";
+import { CompanyCandidates } from "@/components/company/CompanyCandidates";
+import { CompanySettings } from "@/components/company/CompanySettings";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { AdminUsers } from "@/components/admin/AdminUsers";
+import { AdminAuditLogs } from "@/components/admin/AdminAuditLogs";
 import { useToast } from "@/hooks/use-toast";
-import type { User as SupaUser } from "@supabase/supabase-js";
+import { Briefcase, Users, FileText, MessageSquare, BarChart3 } from "lucide-react";
+import { Link } from "react-router-dom";
+
+const DashboardHome = ({ userType, userId }: { userType: string; userId: string }) => {
+  const candidateCards = [
+    { icon: FileText, label: "سيرتي الذاتية", href: "/dashboard/cv", desc: "رفع وتحليل السيرة الذاتية" },
+    { icon: Briefcase, label: "الوظائف المتاحة", href: "/dashboard/jobs", desc: "تصفح وقدّم على الوظائف" },
+    { icon: FileText, label: "طلباتي", href: "/dashboard/applications", desc: "متابعة حالة الطلبات" },
+    { icon: MessageSquare, label: "المدرب المهني", href: "/dashboard/coach", desc: "احصل على نصائح ذكية" },
+  ];
+
+  const companyCards = [
+    { icon: Briefcase, label: "الوظائف", href: "/dashboard/jobs", desc: "نشر وإدارة الوظائف" },
+    { icon: Users, label: "المرشحون", href: "/dashboard/candidates", desc: "مطابقة وتقييم المرشحين" },
+  ];
+
+  const cards = userType === "admin" ? [] : userType === "company" ? companyCards : candidateCards;
+
+  if (userType === "admin") return <AdminDashboard />;
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-2">مرحباً 👋</h1>
+      <p className="text-muted-foreground mb-8">
+        {userType === "company" ? "إدارة عمليات التوظيف" : "إدارة ملفك المهني"}
+      </p>
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map(item => (
+          <Link
+            key={item.href}
+            to={item.href}
+            className="group p-6 rounded-2xl bg-card border border-border/50 shadow-card hover:shadow-card-hover transition-all"
+          >
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+              <item.icon className="w-6 h-6 text-primary" />
+            </div>
+            <h3 className="text-lg font-bold mb-1">{item.label}</h3>
+            <p className="text-sm text-muted-foreground">{item.desc}</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const DashboardPage = () => {
-  const [user, setUser] = useState<SupaUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userType, setUserType] = useState("candidate");
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -16,17 +72,31 @@ const DashboardPage = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
-      if (!session?.user) {
-        navigate("/login");
-      }
+      if (!session?.user) navigate("/login");
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null);
-      setLoading(false);
       if (!session?.user) {
+        setLoading(false);
         navigate("/login");
+        return;
       }
+
+      // Check user type from profile
+      const { data: profile } = await supabase
+        .from("profiles").select("user_type").eq("user_id", session.user.id).single();
+      if (profile) setUserType(profile.user_type);
+
+      // Check admin role
+      const { data: roles } = await supabase
+        .from("user_roles").select("role").eq("user_id", session.user.id);
+      if (roles?.some(r => r.role === "admin")) {
+        setIsAdmin(true);
+        setUserType("admin");
+      }
+
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -46,62 +116,40 @@ const DashboardPage = () => {
     );
   }
 
-  const userType = user?.user_metadata?.user_type || "candidate";
-  const userName = user?.user_metadata?.full_name || "المستخدم";
+  if (!user) return null;
 
-  const candidateLinks = [
-    { icon: User, label: "ملفي الشخصي", href: "/dashboard/profile", desc: "تعديل بياناتك ومهاراتك" },
-    { icon: FileText, label: "سيرتي الذاتية", href: "/dashboard/cv", desc: "رفع وإدارة السيرة الذاتية" },
-    { icon: Briefcase, label: "طلباتي", href: "/dashboard/applications", desc: "متابعة طلبات التوظيف" },
-  ];
-
-  const companyLinks = [
-    { icon: Briefcase, label: "الوظائف", href: "/dashboard/jobs", desc: "إدارة إعلانات الوظائف" },
-    { icon: User, label: "المرشحون", href: "/dashboard/candidates", desc: "استعراض المرشحين المطابقين" },
-    { icon: Settings, label: "إعدادات الشركة", href: "/dashboard/company-settings", desc: "إدارة بيانات الشركة" },
-  ];
-
-  const links = userType === "company" ? companyLinks : candidateLinks;
+  const effectiveType = isAdmin ? "admin" : userType;
+  const userName = user.user_metadata?.full_name || "المستخدم";
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-6 flex items-center justify-between h-16">
-          <Link to="/" className="text-xl font-bold text-gradient-primary font-heading">وظّفني</Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">مرحباً، {userName}</span>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4" />
-              خروج
-            </Button>
-          </div>
-        </div>
-      </header>
+    <DashboardLayout userType={effectiveType} userName={userName} onLogout={handleLogout}>
+      <Routes>
+        <Route index element={<DashboardHome userType={effectiveType} userId={user.id} />} />
 
-      <main className="container mx-auto px-6 py-10">
-        <h1 className="text-3xl font-bold mb-2">لوحة التحكم</h1>
-        <p className="text-muted-foreground mb-8">
-          {userType === "company" ? "إدارة عمليات التوظيف" : "إدارة ملفك المهني"}
-        </p>
+        {/* Candidate routes */}
+        <Route path="profile" element={<CandidateProfile userId={user.id} />} />
+        <Route path="cv" element={<CVUpload userId={user.id} />} />
+        <Route path="applications" element={<MyApplications userId={user.id} />} />
+        <Route path="coach" element={<CareerCoach userId={user.id} />} />
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {links.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className="group p-6 rounded-2xl bg-card border border-border/50 shadow-card hover:shadow-card-hover transition-all duration-300"
-            >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <item.icon className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-bold mb-1">{item.label}</h3>
-              <p className="text-sm text-muted-foreground">{item.desc}</p>
-            </Link>
-          ))}
-        </div>
-      </main>
-    </div>
+        {/* Shared: jobs (candidates browse, companies manage) */}
+        <Route path="jobs" element={
+          effectiveType === "company"
+            ? <CompanyJobs userId={user.id} />
+            : <JobsBrowse userId={user.id} />
+        } />
+
+        {/* Company routes */}
+        <Route path="candidates" element={<CompanyCandidates userId={user.id} />} />
+        <Route path="company-settings" element={<CompanySettings userId={user.id} />} />
+
+        {/* Admin routes */}
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="all-jobs" element={<CompanyJobs userId={user.id} />} />
+        <Route path="stats" element={<AdminDashboard />} />
+        <Route path="audit" element={<AdminAuditLogs />} />
+      </Routes>
+    </DashboardLayout>
   );
 };
 
