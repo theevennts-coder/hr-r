@@ -157,10 +157,12 @@ export type Database = {
           frozen_reason: string | null
           id: string
           industry: string | null
+          is_approved: boolean
           is_frozen: boolean
           jobs_posted: number
           logo_url: string | null
           name: string
+          rejection_reason: string | null
           updated_at: string
           user_id: string
           views_without_shortlist: number
@@ -173,10 +175,12 @@ export type Database = {
           frozen_reason?: string | null
           id?: string
           industry?: string | null
+          is_approved?: boolean
           is_frozen?: boolean
           jobs_posted?: number
           logo_url?: string | null
           name: string
+          rejection_reason?: string | null
           updated_at?: string
           user_id: string
           views_without_shortlist?: number
@@ -189,10 +193,12 @@ export type Database = {
           frozen_reason?: string | null
           id?: string
           industry?: string | null
+          is_approved?: boolean
           is_frozen?: boolean
           jobs_posted?: number
           logo_url?: string | null
           name?: string
+          rejection_reason?: string | null
           updated_at?: string
           user_id?: string
           views_without_shortlist?: number
@@ -255,6 +261,7 @@ export type Database = {
       }
       jobs: {
         Row: {
+          admin_approved: boolean
           applications_count: number
           city: string | null
           company_id: string
@@ -265,6 +272,7 @@ export type Database = {
           id: string
           is_compliant: boolean | null
           min_experience: number | null
+          rejection_reason: string | null
           required_skills: string[] | null
           status: Database["public"]["Enums"]["job_status"]
           title: string
@@ -272,6 +280,7 @@ export type Database = {
           views_count: number
         }
         Insert: {
+          admin_approved?: boolean
           applications_count?: number
           city?: string | null
           company_id: string
@@ -282,6 +291,7 @@ export type Database = {
           id?: string
           is_compliant?: boolean | null
           min_experience?: number | null
+          rejection_reason?: string | null
           required_skills?: string[] | null
           status?: Database["public"]["Enums"]["job_status"]
           title: string
@@ -289,6 +299,7 @@ export type Database = {
           views_count?: number
         }
         Update: {
+          admin_approved?: boolean
           applications_count?: number
           city?: string | null
           company_id?: string
@@ -299,6 +310,7 @@ export type Database = {
           id?: string
           is_compliant?: boolean | null
           min_experience?: number | null
+          rejection_reason?: string | null
           required_skills?: string[] | null
           status?: Database["public"]["Enums"]["job_status"]
           title?: string
