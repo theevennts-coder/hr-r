@@ -36,7 +36,7 @@ export const AdminUsers = () => {
   };
 
   const addRole = async (userId: string, role: string) => {
-    const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
+    const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: role as "admin" | "moderator" | "user" });
     if (!error) {
       toast({ title: `تمت إضافة دور ${role === "admin" ? "مدير" : role === "moderator" ? "مشرف" : "مستخدم"}` });
       setRoles(prev => ({ ...prev, [userId]: [...(prev[userId] || []), role] }));
@@ -46,7 +46,7 @@ export const AdminUsers = () => {
   };
 
   const removeRole = async (userId: string, role: string) => {
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
+    const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as "admin" | "moderator" | "user");
     if (!error) {
       toast({ title: "تم إزالة الدور" });
       setRoles(prev => ({ ...prev, [userId]: (prev[userId] || []).filter(r => r !== role) }));
