@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Briefcase, FileText, Settings, MessageSquare, BarChart3, Shield, Users, Home } from "lucide-react";
+import { LogOut, User, Briefcase, FileText, Settings, MessageSquare, BarChart3, Shield, Users, Home, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -28,8 +28,9 @@ const companyLinks = [
 
 const adminLinks = [
   { icon: Home, label: "الرئيسية", href: "/dashboard" },
-  { icon: Users, label: "المستخدمون", href: "/dashboard/users" },
+  { icon: Building2, label: "الشركات", href: "/dashboard/companies" },
   { icon: Briefcase, label: "الوظائف", href: "/dashboard/all-jobs" },
+  { icon: Users, label: "المستخدمون", href: "/dashboard/users" },
   { icon: BarChart3, label: "الإحصائيات", href: "/dashboard/stats" },
   { icon: Shield, label: "سجل التدقيق", href: "/dashboard/audit" },
 ];
