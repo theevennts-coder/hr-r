@@ -172,12 +172,11 @@ const updateStatus = async (appId: string, newStatus: string) => {
       ) : (
         <div className="grid gap-4">
           {applications.map(app => {
-            const candidateProfile = app.candidates?.profiles;
             return (
               <div key={app.id} className="p-5 rounded-2xl bg-card border border-border/50 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-bold">{candidateProfile?.full_name || "مرشح"}</h3>
+                    <h3 className="font-bold">{app.candidate_profile?.full_name || "مرشح"}</h3>
                     <p className="text-sm text-muted-foreground">{app.candidates?.title || ""}</p>
                     {app.candidates?.city && <p className="text-xs text-muted-foreground">📍 {app.candidates.city}</p>}
                   </div>
