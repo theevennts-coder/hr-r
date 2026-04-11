@@ -58,10 +58,22 @@ export const CompanyCandidates = ({ userId }: CompanyCandidatesProps) => {
   const loadApplications = async (jobId: string) => {
     const { data } = await supabase
       .from("applications")
-      .select("*, candidates(user_id, skills, experience_years, city, title, bio, profiles:user_id(full_name, phone))")
+      .select("*, candidates(id, user_id, skills, experience_years, city, title, bio)")
       .eq("job_id", jobId)
       .order("match_score", { ascending: false });
-    if (data) setApplications(data);
+    
+    if (data) {
+      // Fetch profile names for each candidate
+      const enriched = await Promise.all(data.map(async (app: any) => {
+        if (app.candidates?.user_id) {
+          const { data: profile } = await supabase
+            .from("profiles").select("full_name, phone").eq("user_id", app.candidates.user_id).single();
+          return { ...app, candidate_profile: profile };
+        }
+        return app;
+      }));
+      setApplications(enriched);
+    }
   };
 
 const updateStatus = async (appId: string, newStatus: string) => {
