@@ -12,6 +12,8 @@ import { CompanyJobs } from "@/components/company/CompanyJobs";
 import { CompanyCandidates } from "@/components/company/CompanyCandidates";
 import { CompanySettings } from "@/components/company/CompanySettings";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { AdminCompanies } from "@/components/admin/AdminCompanies";
+import { AdminJobs } from "@/components/admin/AdminJobs";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAuditLogs } from "@/components/admin/AdminAuditLogs";
 import { useToast } from "@/hooks/use-toast";
@@ -144,8 +146,9 @@ const DashboardPage = () => {
         <Route path="company-settings" element={<CompanySettings userId={user.id} />} />
 
         {/* Admin routes */}
+        <Route path="companies" element={<AdminCompanies />} />
         <Route path="users" element={<AdminUsers />} />
-        <Route path="all-jobs" element={<CompanyJobs userId={user.id} />} />
+        <Route path="all-jobs" element={<AdminJobs />} />
         <Route path="stats" element={<AdminDashboard />} />
         <Route path="audit" element={<AdminAuditLogs />} />
       </Routes>
