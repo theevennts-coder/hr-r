@@ -11,15 +11,15 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing authorization");
+    if (!authHeader?.startsWith("Bearer ")) throw new Error("Missing authorization");
 
-    const supabase = createClient(
+    const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await adminClient.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
     const { message } = await req.json();
@@ -28,12 +28,6 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Get candidate data for context
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     const { data: candidate } = await adminClient
       .from("candidates").select("skills, experience_years, city, title, bio").eq("user_id", user.id).single();
