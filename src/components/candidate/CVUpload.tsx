@@ -1,19 +1,35 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileText, Sparkles, CheckCircle } from "lucide-react";
+import { Upload, Sparkles, CheckCircle, Pencil, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface CVUploadProps {
   userId: string;
 }
 
+interface ParsedCV {
+  full_name: string;
+  title: string;
+  bio: string;
+  skills: string[];
+  experience_years: number;
+  city: string;
+  experience: { title: string; company: string; duration: string; description?: string }[];
+  education: { degree: string; institution: string; year: string }[];
+}
+
 export const CVUpload = ({ userId }: CVUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
-  const [parsedData, setParsedData] = useState<any>(null);
-  const [cvUrl, setCvUrl] = useState<string | null>(null);
+  const [parsedData, setParsedData] = useState<ParsedCV | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [approved, setApproved] = useState(false);
+  const [newSkill, setNewSkill] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -32,6 +48,9 @@ export const CVUpload = ({ userId }: CVUploadProps) => {
     }
 
     setUploading(true);
+    setParsedData(null);
+    setApproved(false);
+    setEditMode(false);
     try {
       const filePath = `${userId}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
@@ -40,13 +59,9 @@ export const CVUpload = ({ userId }: CVUploadProps) => {
 
       if (uploadError) throw uploadError;
 
-      // Update candidate CV URL
       await supabase.from("candidates").update({ cv_url: filePath }).eq("user_id", userId);
-      setCvUrl(filePath);
-
       toast({ title: "تم رفع السيرة الذاتية بنجاح" });
 
-      // Now parse with AI
       await parseCV(file);
     } catch (error: any) {
       toast({ title: "خطأ في الرفع", description: error.message, variant: "destructive" });
@@ -59,7 +74,6 @@ export const CVUpload = ({ userId }: CVUploadProps) => {
     setParsing(true);
     try {
       const text = await file.text();
-
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
 
@@ -81,7 +95,16 @@ export const CVUpload = ({ userId }: CVUploadProps) => {
       }
 
       const result = await response.json();
-      setParsedData(result.data);
+      setParsedData({
+        full_name: result.data?.full_name || "",
+        title: result.data?.title || "",
+        bio: result.data?.bio || "",
+        skills: result.data?.skills || [],
+        experience_years: result.data?.experience_years || 0,
+        city: result.data?.city || "",
+        experience: result.data?.experience || [],
+        education: result.data?.education || [],
+      });
       toast({ title: "تم تحليل السيرة الذاتية بالذكاء الاصطناعي ✨" });
     } catch (error: any) {
       toast({ title: "خطأ في التحليل", description: error.message, variant: "destructive" });
@@ -90,11 +113,52 @@ export const CVUpload = ({ userId }: CVUploadProps) => {
     }
   };
 
+  const handleApprove = async () => {
+    if (!parsedData) return;
+    try {
+      const [profileRes, candidateRes] = await Promise.all([
+        supabase.from("profiles").update({
+          full_name: parsedData.full_name,
+        }).eq("user_id", userId),
+        supabase.from("candidates").update({
+          title: parsedData.title,
+          bio: parsedData.bio,
+          skills: parsedData.skills,
+          experience_years: parsedData.experience_years,
+          city: parsedData.city,
+          cv_parsed_data: parsedData as any,
+        }).eq("user_id", userId),
+      ]);
+
+      if (profileRes.error) throw profileRes.error;
+      if (candidateRes.error) throw candidateRes.error;
+
+      setApproved(true);
+      setEditMode(false);
+      toast({ title: "تم اعتماد البيانات وحفظها بنجاح ✅" });
+    } catch (error: any) {
+      toast({ title: "خطأ في الحفظ", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const addSkill = () => {
+    if (newSkill.trim() && parsedData && !parsedData.skills.includes(newSkill.trim())) {
+      setParsedData({ ...parsedData, skills: [...parsedData.skills, newSkill.trim()] });
+      setNewSkill("");
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    if (parsedData) {
+      setParsedData({ ...parsedData, skills: parsedData.skills.filter(s => s !== skill) });
+    }
+  };
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-1">سيرتي الذاتية</h2>
-        <p className="text-muted-foreground">ارفع سيرتك الذاتية وسيحللها الذكاء الاصطناعي تلقائياً</p>
+        <p className="text-muted-foreground">ارفع سيرتك الذاتية وسيحللها الذكاء الاصطناعي — راجع البيانات واعتمدها</p>
       </div>
 
       {/* Upload Area */}
@@ -117,84 +181,149 @@ export const CVUpload = ({ userId }: CVUploadProps) => {
         </div>
       )}
 
-      {/* Parsed Data Preview */}
-      {parsedData && (
-        <div className="p-6 rounded-2xl bg-card border border-border/50 space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-bold">البيانات المستخرجة</h3>
-            <CheckCircle className="w-5 h-5 text-green-500" />
+      {/* Parsed Data - Editable */}
+      {parsedData && !approved && (
+        <div className="p-6 rounded-2xl bg-card border border-border/50 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-bold">البيانات المستخرجة</h3>
+            </div>
+            {!editMode && (
+              <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
+                <Pencil className="w-4 h-4" />
+                تصحيح
+              </Button>
+            )}
           </div>
 
-          {parsedData.full_name && (
-            <div>
-              <p className="text-sm text-muted-foreground">الاسم</p>
-              <p className="font-medium">{parsedData.full_name}</p>
-            </div>
-          )}
-
-          {parsedData.title && (
-            <div>
-              <p className="text-sm text-muted-foreground">المسمى الوظيفي</p>
-              <p className="font-medium">{parsedData.title}</p>
-            </div>
-          )}
-
-          {parsedData.bio && (
-            <div>
-              <p className="text-sm text-muted-foreground">الملخص المهني</p>
-              <p className="text-sm">{parsedData.bio}</p>
-            </div>
-          )}
-
-          {parsedData.skills?.length > 0 && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">المهارات</p>
-              <div className="flex flex-wrap gap-2">
-                {parsedData.skills.map((skill: string, i: number) => (
-                  <Badge key={i} variant="secondary">{skill}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {parsedData.experience_years != null && (
-            <div>
-              <p className="text-sm text-muted-foreground">سنوات الخبرة</p>
-              <p className="font-medium">{parsedData.experience_years} سنة</p>
-            </div>
-          )}
-
-          {parsedData.experience?.length > 0 && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">الخبرات</p>
-              <div className="space-y-3">
-                {parsedData.experience.map((exp: any, i: number) => (
-                  <div key={i} className="p-3 rounded-lg bg-muted/50">
-                    <p className="font-medium">{exp.title}</p>
-                    <p className="text-sm text-muted-foreground">{exp.company} — {exp.duration}</p>
-                    {exp.description && <p className="text-sm mt-1">{exp.description}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {parsedData.education?.length > 0 && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">التعليم</p>
-              {parsedData.education.map((edu: any, i: number) => (
-                <div key={i} className="p-3 rounded-lg bg-muted/50">
-                  <p className="font-medium">{edu.degree}</p>
-                  <p className="text-sm text-muted-foreground">{edu.institution} — {edu.year}</p>
+          {editMode ? (
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>الاسم الكامل</Label>
+                  <Input value={parsedData.full_name} onChange={e => setParsedData({ ...parsedData, full_name: e.target.value })} />
                 </div>
-              ))}
+                <div className="space-y-2">
+                  <Label>المسمى الوظيفي</Label>
+                  <Input value={parsedData.title} onChange={e => setParsedData({ ...parsedData, title: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>الملخص المهني</Label>
+                <Textarea value={parsedData.bio} onChange={e => setParsedData({ ...parsedData, bio: e.target.value })} rows={3} />
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>المدينة</Label>
+                  <Input value={parsedData.city} onChange={e => setParsedData({ ...parsedData, city: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>سنوات الخبرة</Label>
+                  <Input type="number" min={0} value={parsedData.experience_years} onChange={e => setParsedData({ ...parsedData, experience_years: parseInt(e.target.value) || 0 })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>المهارات</Label>
+                <div className="flex gap-2">
+                  <Input value={newSkill} onChange={e => setNewSkill(e.target.value)} placeholder="أضف مهارة" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addSkill(); } }} />
+                  <Button type="button" variant="outline" onClick={addSkill}>إضافة</Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {parsedData.skills.map(skill => (
+                    <Badge key={skill} variant="secondary" className="cursor-pointer hover:bg-destructive/20" onClick={() => removeSkill(skill)}>
+                      {skill} ✕
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {parsedData.full_name && (
+                <div className="flex justify-between items-start p-3 rounded-lg bg-muted/30">
+                  <div><p className="text-xs text-muted-foreground">الاسم</p><p className="font-medium">{parsedData.full_name}</p></div>
+                </div>
+              )}
+              {parsedData.title && (
+                <div className="p-3 rounded-lg bg-muted/30">
+                  <p className="text-xs text-muted-foreground">المسمى الوظيفي</p><p className="font-medium">{parsedData.title}</p>
+                </div>
+              )}
+              {parsedData.bio && (
+                <div className="p-3 rounded-lg bg-muted/30">
+                  <p className="text-xs text-muted-foreground">الملخص المهني</p><p className="text-sm">{parsedData.bio}</p>
+                </div>
+              )}
+              <div className="grid md:grid-cols-2 gap-3">
+                {parsedData.city && (
+                  <div className="p-3 rounded-lg bg-muted/30">
+                    <p className="text-xs text-muted-foreground">المدينة</p><p className="font-medium">{parsedData.city}</p>
+                  </div>
+                )}
+                {parsedData.experience_years != null && (
+                  <div className="p-3 rounded-lg bg-muted/30">
+                    <p className="text-xs text-muted-foreground">سنوات الخبرة</p><p className="font-medium">{parsedData.experience_years} سنة</p>
+                  </div>
+                )}
+              </div>
+              {parsedData.skills?.length > 0 && (
+                <div className="p-3 rounded-lg bg-muted/30">
+                  <p className="text-xs text-muted-foreground mb-2">المهارات</p>
+                  <div className="flex flex-wrap gap-2">
+                    {parsedData.skills.map((skill, i) => <Badge key={i} variant="secondary">{skill}</Badge>)}
+                  </div>
+                </div>
+              )}
+              {parsedData.experience?.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">الخبرات</p>
+                  <div className="space-y-2">
+                    {parsedData.experience.map((exp, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-muted/30">
+                        <p className="font-medium">{exp.title}</p>
+                        <p className="text-sm text-muted-foreground">{exp.company} — {exp.duration}</p>
+                        {exp.description && <p className="text-sm mt-1">{exp.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {parsedData.education?.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">التعليم</p>
+                  {parsedData.education.map((edu, i) => (
+                    <div key={i} className="p-3 rounded-lg bg-muted/30 mb-2">
+                      <p className="font-medium">{edu.degree}</p>
+                      <p className="text-sm text-muted-foreground">{edu.institution} — {edu.year}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground mt-4">
-            تم تحديث ملفك الشخصي تلقائياً بالبيانات المستخرجة
-          </p>
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <Button onClick={handleApprove} className="flex-1">
+              <CheckCircle className="w-4 h-4" />
+              اعتماد البيانات
+            </Button>
+            {editMode && (
+              <Button variant="outline" onClick={() => setEditMode(false)}>
+                معاينة
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Approved state */}
+      {approved && (
+        <div className="p-6 rounded-2xl bg-green-500/10 border border-green-500/30 text-center space-y-2">
+          <CheckCircle className="w-10 h-10 text-green-500 mx-auto" />
+          <p className="font-bold text-lg">تم اعتماد البيانات بنجاح</p>
+          <p className="text-sm text-muted-foreground">تم تحديث ملفك الشخصي والمهني ببيانات السيرة الذاتية</p>
         </div>
       )}
     </div>
