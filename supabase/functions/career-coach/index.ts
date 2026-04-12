@@ -38,12 +38,12 @@ serve(async (req) => {
     );
 
     const { data: candidate } = await adminClient
-      .from("candidates").select("skills, experience_years, city, title, bio").eq("user_id", user.id).single();
+      .from("candidates").select("skills, experience_years, city, title, bio").eq("user_id", userId).single();
 
     const { data: applications } = await adminClient
       .from("applications")
       .select("status, match_score, jobs(title, company_id)")
-      .eq("candidate_id", (await adminClient.from("candidates").select("id").eq("user_id", user.id).single()).data?.id || "");
+      .eq("candidate_id", (await adminClient.from("candidates").select("id").eq("user_id", userId).single()).data?.id || "");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("AI not configured");
