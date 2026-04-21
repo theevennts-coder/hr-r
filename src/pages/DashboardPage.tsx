@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { CandidateProfile } from "@/components/candidate/CandidateProfile";
+import { CandidateHome } from "@/components/candidate/CandidateHome";
 import { CVUpload } from "@/components/candidate/CVUpload";
 import { JobsBrowse } from "@/components/candidate/JobsBrowse";
 import { MyApplications } from "@/components/candidate/MyApplications";
@@ -20,36 +21,24 @@ import { useToast } from "@/hooks/use-toast";
 import { Briefcase, Users, FileText, MessageSquare, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const DashboardHome = ({ userType, userId }: { userType: string; userId: string }) => {
-  const candidateCards = [
-    { icon: FileText, label: "سيرتي الذاتية", href: "/dashboard/cv", desc: "رفع وتحليل السيرة الذاتية" },
-    { icon: Briefcase, label: "الوظائف المتاحة", href: "/dashboard/jobs", desc: "تصفح وقدّم على الوظائف" },
-    { icon: FileText, label: "طلباتي", href: "/dashboard/applications", desc: "متابعة حالة الطلبات" },
-    { icon: MessageSquare, label: "المدرب المهني", href: "/dashboard/coach", desc: "احصل على نصائح ذكية" },
-  ];
+const DashboardHome = ({ userType, userId, userName }: { userType: string; userId: string; userName: string }) => {
+  if (userType === "admin") return <AdminDashboard />;
+  if (userType === "candidate") return <CandidateHome userId={userId} userName={userName} />;
 
+  // Company default landing
   const companyCards = [
     { icon: Briefcase, label: "الوظائف", href: "/dashboard/jobs", desc: "نشر وإدارة الوظائف" },
     { icon: Users, label: "المرشحون", href: "/dashboard/candidates", desc: "مطابقة وتقييم المرشحين" },
   ];
 
-  const cards = userType === "admin" ? [] : userType === "company" ? companyCards : candidateCards;
-
-  if (userType === "admin") return <AdminDashboard />;
-
   return (
-    <div>
+    <div className="animate-fade-in">
       <h1 className="text-3xl font-bold mb-2">مرحباً 👋</h1>
-      <p className="text-muted-foreground mb-8">
-        {userType === "company" ? "إدارة عمليات التوظيف" : "إدارة ملفك المهني"}
-      </p>
+      <p className="text-muted-foreground mb-8">إدارة عمليات التوظيف</p>
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map(item => (
-          <Link
-            key={item.href}
-            to={item.href}
-            className="group p-6 rounded-2xl bg-card border border-border/50 shadow-card hover:shadow-card-hover transition-all"
-          >
+        {companyCards.map(item => (
+          <Link key={item.href} to={item.href}
+            className="group p-6 rounded-2xl bg-card border border-border/60 shadow-soft hover-lift">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
               <item.icon className="w-6 h-6 text-primary" />
             </div>
@@ -126,7 +115,7 @@ const DashboardPage = () => {
   return (
     <DashboardLayout userType={effectiveType} userName={userName} onLogout={handleLogout}>
       <Routes>
-        <Route index element={<DashboardHome userType={effectiveType} userId={user.id} />} />
+        <Route index element={<DashboardHome userType={effectiveType} userId={user.id} userName={userName} />} />
 
         {/* Candidate routes */}
         <Route path="profile" element={<CandidateProfile userId={user.id} />} />
